@@ -109,13 +109,22 @@ Expected: `RESULT: reroute=PASS  re-enforce=PASS`.
 
 ## Notes / limitations
 
+- **Dead virtual devices will faithfully be selected.** This plugin routes your audio to
+  whatever you picked — if you pick a virtual source whose backing plugin is broken, you
+  get exactly what that source produces (usually silence). A common Linux case:
+  NoiseTorch keeps its `module-ladspa-source` loaded after a reboot while its
+  `/tmp/librnnoise-*.so` is gone, so the source still exists but outputs pure silence
+  (`parec` from it reads -99 dBFS). Before the fix this was masked, because Discord
+  ignored your selection and recorded the default source anyway; now the choice is real,
+  so pick a real microphone (or unload the stale module with
+  `pactl unload-module $(pactl list modules short | awk '/noisetorch/{print $1}')`).
+- If a pinned device disappears while pinned, the pin is dropped and control returns to
+  the system default — the plugin never holds a stream on a dead target.
 - Matching is by PipeWire *description*; if you rename a source's description so it no
   longer matches Discord's device name, the pin is skipped with a toast.
 - The watcher only ever touches streams whose `application.name` is
   `WEBRTC VoiceEngine` (or Discord's binary with a capture-like media name). Playback
   streams are never modified.
-- If the pinned device disappears, the pin is dropped rather than left pointing at a
-  dead target.
 
 ## License
 
